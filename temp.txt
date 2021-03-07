@@ -1,0 +1,134 @@
+
+
+    def evtBtnRec(self):
+        """
+        If the rec button is press activate a txt save generator
+        """
+        self.gameIsRec = not self.gameIsRec
+
+        if self.gameIsRec:
+            self.btnRec['bg'] = 'red'
+        else:
+            self.btnRec['bg'] = 'blue'
+
+    def evtBtnPlay(self):
+        """
+        If you start the game the bool activate a rules of life
+        """
+    
+        self.gameIsPlay = not self.gameIsPlay
+
+        if self.gameIsPlay:
+            self.btnPlay['text'] = 'pause'
+            self.btnPlay['bg'] = 'green'
+        else:
+            self.btnPlay['text'] = 'play'
+            self.btnPlay['bg'] = 'red'
+
+        self.paintUniverseSatus()
+
+
+    def evtEject(self):
+        """
+        The game is stop
+        """
+        self.gameIsPlay = False
+        self.gameIsRec = False
+        self.controller.resetUniverse()
+        self.refresgUniverseSize()
+        self.refreshGenerationText()
+
+    def runGameOfLife(self):
+        """
+        This is the main thread of the game
+        """
+        while True:
+            if self.gameIsPlay:
+                # if rec is active save a new universe
+                if self.gameIsRec:
+                    if self.validateTxtNameUniverse():
+                        universeName = str(self.txtUniverseName.get())
+                        if self.controller.saveUniverse(universeName, self.universe, self.generation):
+                            pass
+                        else:
+                            self.gameIsPlay = False
+                            self.alertSMS("Error Fatal", "Todo lo que ha podido fallar lo ha hecho.")
+                    else:
+                        self.gameIsPlay = False
+                        self.alertSMS("Error", "Introduzca el nombre del universo")
+                self.paintUniverseSatus()
+                self.nextGeneration()
+
+    def nextGeneration(self):
+        """
+        Need information about x,y universe size
+        run the matrix in toroid mode
+        """
+        leny = len(self.universe)
+        lenx = len(self.universe[0])
+
+        newUniverse = self.generateDeathUniverse(lenx, leny)
+
+        for i in range(0, len(self.universe)):
+            for j in range(0, len(self.universe[0])):
+
+                # Count of neigthbors
+                countN = 0
+
+                #N1
+                countN = countN + self.universe[(i-1)%leny][(j-1)%lenx]
+ 
+                #N2
+                countN = countN + self.universe[(i-1)%leny][j]
+
+                #N3
+                countN = countN + self.universe[(i-1)%leny][(j+1)%lenx]
+
+                #N4
+                countN = countN + self.universe[i][(j-1)%lenx]
+
+                #N5
+                countN = countN + self.universe[i][(j+1)%lenx]
+
+                #N6
+                countN = countN + self.universe[(i+1)%leny][(j-1)%lenx]
+
+                #N7
+                countN = countN + self.universe[(i+1)%leny][j]
+
+                #N8
+                countN = countN + self.universe[(i+1)%leny][(j+1)%lenx]
+
+                # Rule
+                if self.universe[i][j] == 1:
+                    if countN == 2 or countN == 3:
+                        newUniverse[i][j] = 1
+                    else:
+                        newUniverse[i][j] = 0
+                else:
+                    if countN == 3:
+                        newUniverse[i][j] = 1
+                    else:
+                        newUniverse[i][j] = 0
+
+        self.universe = newUniverse
+        self.generation = self.generation + 1
+
+
+    def refreshGenerationText(self):
+        self.lblGeneration['text'] = "generation: " + str(self.generation) 
+
+    def refresgUniverseSize(self):
+        self.lblUniverseSize['text'] = "size: " + str(len(self.universe[0])) + "x" + str(len(self.universe))
+
+    def validateTxtNameUniverse(self):
+        return str(self.txtUniverseName.get()).strip() != ""
+
+    def alertSMS(self, title, txt):
+        w = Toplevel()
+        w.title(title)
+        w.geometry("300x120")
+        lblSms = Label(w, text=txt)
+        lblSms.place(x=20, y=10)
+        btnAcept = Button(w, text="Aceptar", command=w.destroy)
+        btnAcept.place(x=240, y=80)
