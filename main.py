@@ -172,6 +172,20 @@ class Software():
                         self.universe[i][j] = 1
                         self.canvasUniverse.itemconfigure(cell, fill="black")
 
+    def paintUniverseFromMatrix(self):
+        """
+        paint a universe self.universe
+        """
+    
+        for i in range(0, len(self.universe)):
+                for j in range(0, len(self.universe[0])):
+                    cell = self.canvasUniverse.find_withtag(str(j)+":"+str(i))
+                    if self.universe[i][j] == 0:
+                        self.canvasUniverse.itemconfigure(cell, fill="black")
+                    else:
+                        self.universe[i][j] = 1
+                        self.canvasUniverse.itemconfigure(cell, fill="white")
+
 
     def eraseUniverseSatus(self):
         for i in range(0, len(self.universe)):
@@ -281,10 +295,7 @@ class Software():
         """
         self.gameIsPlay = not self.gameIsPlay
 
-        try:
-            self.hilo.start()
-        except:
-            pass
+        
 
     
         if self.gameIsPlay:
@@ -292,10 +303,14 @@ class Software():
             # If the tape is not insert and you insert a universe name:
             if not self.controller.insertCasette and self.validateTxtNameUniverse():
                 self.controller.loadUniverse(self.txtUniverseName.get().strip())
+                self.generation = 0
                 self.loadAndShowUniverse()
                 self.showCassete()
 
-
+            try:
+                self.hilo.start()
+            except:
+                pass
 
             self.btnPlay['text'] = 'pause'
             self.btnPlay['bg'] = 'green'
@@ -342,14 +357,27 @@ class Software():
     def run(self):
         while True:
             if self.gameIsPlay:
-                # If you insert a tape read
-                if self.controller.insertCasette:
-                    self.paintUniverseSatusFromTape()
-                    if self.generation<self.controller.casete.duration:
-                        self.generation = self.generation + 1
-                    time.sleep(0)
 
 
+                # If you insert a name casete and need save
+                if self.controller.insertCasette and self.gameIsRec and not self.wrProtection:
+                    self.controller.saveUniverse(self.txtUniverseName.get().strip(), self.universe, self.generation)
+                    self.calculateNextGeneration()
+                    self.paintUniverseFromMatrix() 
+                    
+                else:
+                    # If you insert a tape read
+                    if self.controller.insertCasette and not self.controller.defaultMode:
+                        self.paintUniverseSatusFromTape()
+                        if self.generation<self.controller.casete.duration:
+                            self.generation = self.generation + 1
+                        time.sleep(0)
+
+                    # If you not insert a tape and you in default mode
+                    if not self.controller.insertCasette and self.controller.defaultMode:
+                        self.calculateNextGeneration()
+                        self.paintUniverseFromMatrix()                      
+            
 
             self.refrestStadics()
 
