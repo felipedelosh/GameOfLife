@@ -1,22 +1,17 @@
 """
-The game of life v2.0 by felipedelosh
+This is the game of life v2.0
 
- 24 02 2021
+1 The system show a interface
 
- + better and beautifull interface
- + read .txt with matrix
- + save a generations to aply next and previus
- 
- 
 1 = Alive
 0 = death
 """
-
 from tkinter import *
 import math
 import threading
-
+import time
 from Controller import *
+
 
 class Software():
     def __init__(self):
@@ -38,10 +33,10 @@ class Software():
         self.btnBlockWriter = Button(self.canvasUniverseControl, text="WR Block", bg="red", command=self.evtWrProtection)
         self.btnRec = Button(self.canvasUniverseControl, text="Rec", bg="blue", command=self.evtBtnRec)
         self.btnPlay = Button(self.canvasUniverseControl, text="Play", command=self.evtBtnPlay)
-        #self.btnNextGen  = Button(self.canvasUniverseControl, text="Next", command=self.nextGeneration)
-        #self.btnPrevGen = Button(self.canvasUniverseControl, text=" Prev")
-        #self.btnStop = Button(self.canvasUniverseControl, text="Stop")
-        #self.btnEject = Button(self.canvasUniverseControl, text="Eject", command=self.evtEject)
+        self.btnNextGen  = Button(self.canvasUniverseControl, text="Next", command=self.evtNext)
+        self.btnPrevGen = Button(self.canvasUniverseControl, text=" Prev")
+        self.btnStop = Button(self.canvasUniverseControl, text="Stop", command=self.evtStop)
+        self.btnEject = Button(self.canvasUniverseControl, text="Eject", command=self.evtEject)
 
         #Universe vars
         self.generation = 0 # number of generation 0, 1, 2 ... 
@@ -50,11 +45,11 @@ class Software():
         self.gameIsRec = False # Sayme if the user save a universe
         self.gameIsPlay = False # Sayme if the game is running
         self.universe = [] # Contains a 0 death or 1 alive
+        # Charge a default universe
+        self.controller.loadUniverse("default")
 
-        
         # Hilo
         self.hilo = threading.Thread(target=self.run)
-        
 
         #Show and draw screem
         self.showDisplay()
@@ -68,9 +63,7 @@ class Software():
         self.canvasUniverse.place(x=0, y=0)
         self.canvasUniverseControl.place(x=0, y=500)
         self.canvasCassete.place(x=250, y=520)
-        self.canvasCassete.create_image(0, 0, image=self.imgCaseteBG1, anchor=NW)
-        self.canvasCassete.create_image(0, 0, image=self.imgCaseteBG2, anchor=NW)
-        self.canvasCassete.create_image(0, 0, image=self.imgCaseteBG3, anchor=NW)
+            
         self.lblGeneration.place(x=20, y=20)
         self.lblLenUniverse.place(x=150, y=20)
         self.lblUniverseName.place(x=20, y=40)
@@ -79,33 +72,44 @@ class Software():
         self.btnBlockWriter.place(x=450, y=20)
         self.btnRec.place(x=220, y=160)
         self.btnPlay.place(x=280, y=160)
-        #self.btnPrevGen.place(x=340, y=160)
-        #self.btnNextGen.place(x=400, y=160)
-        #self.btnStop.place(x=460, y=160)
-        #self.btnEject.place(x=520, y=160)
+        self.btnPrevGen.place(x=340, y=160)
+        self.btnNextGen.place(x=400, y=160)
+        self.btnStop.place(x=460, y=160)
+        self.btnEject.place(x=520, y=160)
 
-        self.loadAndShowUniverse("default")
+        self.loadAndShowUniverse()
 
         self.display.mainloop()
 
+    def showCassete(self):
+        """
+        Paint a cassete in canvas cassete
+        """
+        self.canvasCassete.create_image(0, 0, image=self.imgCaseteBG1, anchor=NW, tags="cassete")
+        self.canvasCassete.create_image(0, 0, image=self.imgCaseteBG2, anchor=NW, tags="cassete")
+        self.canvasCassete.create_image(0, 0, image=self.imgCaseteBG3, anchor=NW, tags="cassete")
 
-    def loadAndShowUniverse(self, universeName):
+    def hideCassete(self):
+        self.canvasCassete.delete("cassete")
+
+
+    def loadAndShowUniverse(self, universeName="default"):
         """
-        Before the game is running need to representate in screem
-        1 - load a universeName.txt and get h,w and paint all rectangles
-        2 - set a local universe y x
-        2.1 - load all universes in controller.casete
-        3 - paint a rectangles in screem
-        4 - paint a 1st data of casete universe
+        charge a universe from tape.
+        paint a rectangles and show 1 and 0
         """
-        y, x = self.controller.getUniverseMatrixSize(universeName)
+        if len(self.universe) > 0:
+            # Si ya se pinto un universo borrelo de la pantalla
+            for i in range(0, len(self.universe)):
+                for j in range(0, len(self.universe[0])):
+                    self.canvasUniverse.delete(str(j)+":"+str(i))
+
+        x, y = self.controller.getUniverseMatrixSize()
         self.universe = self.generateEmptyUniverse(y, x)
-        self.controller.loadUniverse(universeName)
+        self.universe = self.controller.getUniverseDataPos(0)
         self.paintRectanglesOfUniverse()
         self.paintUniverseSatusFromTape()
-
-
-        self.refrestStadics()
+        
 
 
     def generateEmptyUniverse(self, y, x):
@@ -153,13 +157,14 @@ class Software():
         The universe is contain in casete 
         i get the information and clone
         """
+        data = []
         data = self.controller.getCasetePos(self.generation)
+
 
         if data != None:
             for i in range(0, len(data)):
                 for j in range(0, len(data[0])):
                     cell = self.canvasUniverse.find_withtag(str(j)+":"+str(i))
-
                     if data[i][j] == 0:
                         self.universe[i][j] = 0
                         self.canvasUniverse.itemconfigure(cell, fill="green")
@@ -167,18 +172,6 @@ class Software():
                         self.universe[i][j] = 1
                         self.canvasUniverse.itemconfigure(cell, fill="black")
 
-    def paintUniverseStatusFromLocal(self):
-        """
-        The universe in the screm is recalculate and show
-        """
-        # Repaint a local universe
-        for i in range(0, len(self.universe)):
-            for j in range(0, len(self.universe[0])):
-                cell = self.canvasUniverse.find_withtag(str(j)+":"+str(i))
-                if self.universe[i][j] == 0:
-                    self.canvasUniverse.itemconfigure(cell, fill="black")
-                else:
-                    self.canvasUniverse.itemconfigure(cell, fill="white")
 
     def eraseUniverseSatus(self):
         for i in range(0, len(self.universe)):
@@ -186,7 +179,6 @@ class Software():
                 cell = self.canvasUniverse.find_withtag(str(j)+":"+str(i))
                 self.canvasUniverse.itemconfigure(cell, fill="white")
                
-
     def calculateNextGeneration(self):
         """
         Need information about x,y universe size
@@ -197,6 +189,7 @@ class Software():
 
         newUniverse = self.generateEmptyUniverse(leny, lenx)
 
+ 
         for i in range(0, len(self.universe)):
             for j in range(0, len(self.universe[0])):
 
@@ -205,7 +198,7 @@ class Software():
 
                 #N1
                 countN = countN + self.universe[(i-1)%leny][(j-1)%lenx]
- 
+
                 #N2
                 countN = countN + self.universe[(i-1)%leny][j]
 
@@ -247,15 +240,7 @@ class Software():
         """
         If you click inside of universe the cell is alive
         """
-        sizex = int(self.canvasUniverse['width'])/len(self.universe[0])
-        sizey = (int(self.canvasUniverse['height']))/len(self.universe)
-        xID = math.floor(Event.x/sizex)
-        yID = math.floor(Event.y/sizey)
-        print("...Hasc clikeado en ..." , yID, xID)
-        # Alive in universe
-        if not self.wrProtection:
-            self.eraseUniverseSatus()
-            self.universe[yID][xID] == 1
+        pass
 
             
 
@@ -278,9 +263,21 @@ class Software():
         else:
             self.btnRec['bg'] = 'blue'
 
+    def evtNext(self):
+        print("siguiente")
+
+    def evtEject(self):
+        self.evtStop()
+        self.controller.insertCasette = False
+        self.generation = 0
+        self.hideCassete()
+    
+
     def evtBtnPlay(self):
         """
         If you start the game the bool activate a rules of life
+        if you click for first time the thread is run
+        paint if the casste is inside or ouside
         """
         self.gameIsPlay = not self.gameIsPlay
 
@@ -289,12 +286,26 @@ class Software():
         except:
             pass
 
+    
         if self.gameIsPlay:
+
+            # If the tape is not insert and you insert a universe name:
+            if not self.controller.insertCasette and self.validateTxtNameUniverse():
+                self.controller.loadUniverse(self.txtUniverseName.get().strip())
+                self.loadAndShowUniverse()
+                self.showCassete()
+
+
+
             self.btnPlay['text'] = 'pause'
             self.btnPlay['bg'] = 'green'
         else:
             self.btnPlay['text'] = 'play'
             self.btnPlay['bg'] = 'red'
+
+    def evtStop(self):
+        self.gameIsPlay = False
+        self.btnPlay['bg'] = "red"
 
 
     def refrestStadics(self):
@@ -319,25 +330,28 @@ class Software():
         return str(self.txtUniverseName.get()).strip() != ""
 
     def alertSMS(self, title, txt):
-            w = Toplevel()
-            w.title(title)
-            w.geometry("300x120")
-            lblSms = Label(w, text=txt)
-            lblSms.place(x=20, y=10)
-            btnAcept = Button(w, text="Aceptar", command=w.destroy)
-            btnAcept.place(x=240, y=80)
+        w = Toplevel()
+        w.title(title)
+        w.geometry("300x120")
+        lblSms = Label(w, text=txt)
+        lblSms.place(x=20, y=10)
+        btnAcept = Button(w, text="Aceptar", command=w.destroy)
+        btnAcept.place(x=240, y=80)
 
 
     def run(self):
         while True:
             if self.gameIsPlay:
-                # Si se debe de generar un universo nuevo
-                if self.controller.defaultMode:
-                    self.calculateNextGeneration()
-                    self.paintUniverseStatusFromLocal()
-                # Si se debe de cargar la siguiente generacion del universo
-                else:
-                    pass
+                # If you insert a tape read
+                if self.controller.insertCasette:
+                    self.paintUniverseSatusFromTape()
+                    if self.generation<self.controller.casete.duration:
+                        self.generation = self.generation + 1
+                    time.sleep(0)
+
+
+
+            self.refrestStadics()
 
 
 s = Software()

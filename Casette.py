@@ -42,11 +42,16 @@ class Casette:
 
 
     def getData(self, x):
-        if x<self.duration:
-            con = 0
+        """
+        Return a pos x to the tape
+        """
+        if self.duration > x:
+            count = 0
             temp = self.tape
-            for i in range(0, con):
-                temp = temp.next
+            
+            while count != x:
+                temp =temp.next
+                count = count + 1
 
             return temp.data
         else:

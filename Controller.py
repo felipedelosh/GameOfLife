@@ -13,7 +13,8 @@ class Controller():
     def __init__(self):
         self.projectPath = str(os.path.dirname(os.path.abspath(__file__)))
         self.casete = Casette() # Save all universes
-        self.defaultMode = True # if you not charge a universe
+        self.defaultMode = True # if you not charge a universe show a default universe
+        self.insertCasette = False # If you charge a cassete ... if universe inside in cassete
         
         self.createAUniverseFolder()
         self.createDedaultUniverse()
@@ -81,26 +82,12 @@ class Controller():
         except:
             return False
 
-    def getUniverseMatrixSize(self, universeName):
+    def getUniverseMatrixSize(self):
         """
-        universe/universeName 
-        get 0.txt and calculate width and heigt
-        -1 becaus the end of txt contain break line
+        return a x, y of universe size in tape pos 0
         """
-        try:
-            f = open(self.projectPath+"\\universe" + "\\" + universeName + "0.txt", "r", encoding="UTF-8")
-            txt = f.read()
-            h = len(str(txt).split("\n")) - 1
-            w = len(str(txt).split("\n")[0])
-            f.close()
-            return h, w
-        except:
-            f = open(self.projectPath+"\\universe\\default.txt", "r", encoding="UTF-8")
-            txt = f.read()
-            h = len(str(txt).split("\n")) - 1
-            w = len(str(txt).split("\n")[0])
-            f.close()
-            return h, w
+        return len(self.casete.tape.data[0]), len(self.casete.tape.data)
+     
 
     def getUniverseSize(self):
         """
@@ -115,12 +102,49 @@ class Controller():
         """
         universe/universeName/0.txt ... n.txt load in data cassete
         """
-        try:
-            f = open(self.projectPath+"\\universe" + "\\" + universeName + "0.txt", "r", encoding="UTF-8")
-            txt = f.read()
-        except:
-            self.casete.deteleAll()
 
+        self.casete.deteleAll()
+
+        if universeName != "default":
+            print("No es default")
+            self.casete.deteleAll()
+            """
+            Se procede a leer los txt uno por uno
+            """
+            readNext = True
+            idUniverse = 0
+
+            while readNext:
+                try:
+                    ruta = self.projectPath+"\\universe" + "\\" + universeName + "\\" +  str(idUniverse)+".txt"
+
+                    f = open(ruta, "r", encoding="UTF-8")
+                    txt = f.read()
+                    universe = []
+                    cony = 0
+
+                    for i in txt.split("\n"):
+                        if str(i).strip() != "":
+                            universe.append([])
+                            for j in i:
+                                universe[cony].append(int(j))
+                            cony = cony + 1
+                            
+                    f.close()
+                    # Add to casete
+                    self.casete.addData(universe)
+                   
+                    readNext = True
+                    idUniverse = idUniverse + 1
+                except:
+                    readNext = False
+
+            self.casete.name = universeName
+            self.defaultMode = False
+            self.insertCasette = True
+
+
+        else:    
             f = open(self.projectPath+"\\universe\\default.txt", "r", encoding="UTF-8")
             txt = f.read()
 
@@ -134,10 +158,15 @@ class Controller():
                     cony = cony + 1
             
             f.close()
+            self.defaultMode = True
+            self.insertCasette = False
             # Add to casete
             self.casete.addData(universe)
-            self.casete.name = "default"    
-
+            self.casete.name = "default"
+    
+    def getUniverseDataPos(self, position):
+        return self.casete.getData(position)
+        
     def resetUniverse(self):
         self.casete.deteleAll()
 
